@@ -93,8 +93,33 @@ After a successful run, the agent outputs are placed in the `output/` directory:
     └── tools.py
 ```
 
-## Part 2 Discussion (Future Improvements)
+## Part 2: Learning from Doctor Edits
 
-To elevate the agent beyond basic extraction:
-* **Human-in-the-Loop Alignment (RLHF / DPO):** We can fine-tune extraction and summarization styles by collecting clinician revisions. Re-run training with Direct Preference Optimization (DPO) using paired `(original_draft, doctor_edited_draft)` data. This teaches the model the exact stylistic preferences of the medical staff, reducing manual revision overhead.
-* **Multimodal Handwriting Ingestion:** Implement high-resolution Vision-Language Models (VLM) like Gemini 1.5 Pro to transcribe handwritten nursing charts and ICU flowchart logs.
+This repository includes a deterministic feedback loop where the agent learns from a "Simulated Reviewer" to improve future drafts, reducing the editing burden over time.
+
+### Mechanism Design
+
+1. **Reward Signal**: 
+   * **Edit Distance Score**: We use normalized sequence matching (`difflib`) on the JSON state representations. A score of 1.0 means no string differences (less editing = higher reward).
+   * **Section-Level Accuracy**: Measures the percentage of top-level JSON fields in the agent's draft that perfectly match the reviewer's final version.
+
+2. **Simulated Reviewer**: 
+   * A deterministic Python class that applies a hidden policy to the drafts (e.g., ensuring DKA patients always have Insulin on discharge, providing standard follow-up instructions for missing data).
+
+3. **Learning Mechanism**: 
+   * A lightweight `CorrectionMemory` extracts exact modifications from the reviewer and stores them keyed by field. 
+   * On subsequent drafts, the agent queries this memory and safely injects the learned suggestions without overriding guardrails.
+
+4. **Safety Guarantees**: 
+   * When injecting a learned suggestion into a missing field, the agent appends it as `[MISSING - CLINICIAN REVIEW REQUIRED] - Learned Suggestion: ...`. This strictly adheres to the Part 1 safety requirement that missing data must remain flagged, while still proposing the correct answer to the clinician (which the Simulated Reviewer accepts, reducing edit distance).
+
+5. **Metrics & Limitations**:
+   * **Cold-start Problem**: In production, the first few drafts for a new presentation will require heavy editing until enough corrections are logged. This can be mitigated by pre-loading the memory with clinical protocols.
+   * **Risk of Gaming**: A naive optimization might encourage the agent to become vague or mimic style rather than medicine. By rigidly enforcing the `[MISSING]` flag structure and only appending suggestions, we ensure safety is prioritized over lowering edit distance via hallucination.
+
+### Running Part 2
+Run the learning loop simulation (5 iterations):
+```bash
+python main.py --mode part2
+```
+This generates `output/improvement_curve.csv`, `output/part2_report.md`, and other metrics files.

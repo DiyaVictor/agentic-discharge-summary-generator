@@ -17,7 +17,7 @@ class DischargeSummaryAgent:
         self.logger = logger
         self.state = AgentState()
 
-    def run_mock(self, output_dir: str):
+    def run_mock(self, output_dir: str, memory: dict = None, skip_file_generation: bool = False):
         res_1 = mock_pdf_ingestion("patient_records.pdf", True)
         self.logger.log_step(
             iteration=1,
@@ -103,6 +103,16 @@ class DischargeSummaryAgent:
             next_decision="Route to Draft Generation."
         )
 
+        # Apply Correction Memory (Part 2)
+        if memory:
+            if "follow_up_instructions" in memory and "MISSING" in self.state.follow_up_instructions:
+                self.state.follow_up_instructions += f" - Learned Suggestion: {memory['follow_up_instructions']}"
+            
+            if "medications.discharge" in memory:
+                for med in memory["medications.discharge"]:
+                    if not any(med in m for m in self.state.medications.discharge):
+                        self.state.medications.discharge.append(f"{med} (Learned Suggestion)")
+
         self.logger.log_step(
             iteration=7,
             reasoning="All facts extracted, validated, and flagged. Generating final markdown and JSON drafts.",
@@ -111,6 +121,9 @@ class DischargeSummaryAgent:
             result="Drafts generated successfully with [MISSING] and [CONFLICT DETECTED] placeholders injected.",
             next_decision="END."
         )
+
+        if skip_file_generation:
+            return
 
         md_path = os.path.join(output_dir, "discharge_summary.md")
         json_path = os.path.join(output_dir, "discharge_summary.json")
