@@ -21,6 +21,7 @@ The agent is built using a state-machine loop configuration rather than a single
 5. **Medication Reconciliation:** Comprehensively compares admission vs. discharge medications. Identifies discontinued medicines without documented clinical reasons and flags that the patient is being discharged without essential treatment (such as insulin or antibiotics) for their primary diagnoses.
 6. **Missing Data Identification:** Flags any mandatory fields that cannot be verified in the documents, leaving them explicitly labeled as `[MISSING - CLINICIAN REVIEW REQUIRED]`.
 7. **Draft Generation:** Renders a formatted markdown report alongside a structured JSON payload for downstream ingestion.
+<img width="916" height="495" alt="image" src="https://github.com/user-attachments/assets/ffaf9538-3472-429a-adcb-092d1ff51184" />
 
 ---
 
@@ -73,6 +74,8 @@ After a successful run, the agent outputs are placed in the `output/` directory:
 1. **`output/trace.log`**: Step-by-step trace showing the agent's internal reasoning, action selection, tool parameters, results, and subsequent state routing.
 2. **`output/discharge_summary.json`**: The final structured data payload containing demographics, reconciled medications, diagnoses, and clinician alerts.
 3. **`output/discharge_summary.md`**: A professional, human-readable draft summary of the clinical stay, clearly flagging warnings and errors.
+<img width="943" height="530" alt="image" src="https://github.com/user-attachments/assets/0068faf1-9ec8-4981-9f8c-3792f760b103" />
+
 
 ---
 
